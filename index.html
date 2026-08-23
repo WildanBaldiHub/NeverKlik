@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Full Screen Lock</title>
+    <style>
+        /* Menghilangkan margin bawaan browser dan scrollbar */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+            font-family: sans-serif;
+        }
+
+        /* Video memenuhi seluruh layar */
+        .video-full {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Overlay petunjuk klik pertama (Syarat wajib browser agar suara muncul) */
+        .overlay-mulai {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 999;
+            cursor: pointer;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay klik pertama untuk memicu suara & autoplay -->
+    <div id="tombolMulai" class="overlay-mulai">
+        Jangan di Klik(Dont Klik This PLEASE!)
+    </div>
+
+    <!-- Tag video tanpa atribut 'controls' agar tidak bisa dimundurkan/di-pause manual -->
+    <!-- Atribut playsinline wajib untuk pengguna iOS/Safari -->
+    <video id="myVideo" class="video-full" playsinline>
+        <source src="Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster).mp4" type="video/mp4">
+        Browser Anda tidak mendukung tag video ini.
+    </video>
+
+    <script>
+        const video = document.getElementById('myVideo');
+        const overlay = document.getElementById('tombolMulai');
+        let waktuTerakhir = 0;
+
+        // 1. Logika Klik Pertama: Aktifkan Video, Suara, dan Mulai dari Awal
+        overlay.addEventListener('click', function() {
+            overlay.style.display = 'none'; // Sembunyikan petunjuk klik
+            video.currentTime = 0;          // Pastikan video selalu mulai dari detik 0
+            video.muted = false;            // Hidupkan suara video
+            video.play();                   // Jalankan video
+        });
+
+        // 2. Kunci Waktu Video (Mencegah user memundurkan atau mempercepat video)
+        video.addEventListener('timeupdate', function() {
+            // Jika user mencoba lompat maju/mundur lebih dari 1 detik dari waktu pemutaran normal
+            if (Math.abs(video.currentTime - waktuTerakhir) > 1) {
+                video.currentTime = waktuTerakhir; // Paksa kembali ke posisi waktu semula
+            } else {
+                waktuTerakhir = video.currentTime; // Catat waktu berjalan yang normal
+            }
+        });
+
+        // 3. Pastikan waktu reset kembali ke 0 jika video selesai diputar atau diulang
+        video.addEventListener('seeking', function() {
+            if (video.currentTime < waktuTerakhir) {
+                video.currentTime = waktuTerakhir; // Blokir total aksi geser mundur
+            }
+        });
+    </script>
+
+</body>
+</html>
