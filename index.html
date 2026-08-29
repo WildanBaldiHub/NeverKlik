@@ -28,7 +28,7 @@
             border: none;
         }
 
-        /* LAPISAN PELINDUNG (PENTING): Memblokir total interaksi klik, klik kanan, pause, dan timeline */
+        /* LAPISAN PELINDUNG: Memblokir klik, klik kanan, pause, dan timeline */
         .pelindung-layar {
             position: absolute;
             top: 0;
@@ -39,7 +39,7 @@
             background: transparent;
         }
 
-        /* Tombol klik pertama agar browser mengizinkan suara langsung keluar saat dibuka di tab biasa */
+        /* Tombol klik pertama agar browser mengizinkan suara langsung keluar di tab biasa */
         .overlay-mulai {
             position: fixed;
             top: 0;
@@ -63,7 +63,7 @@
 </head>
 <body>
 
-    <!-- Tombol pemicu awal -->
+    <!-- Tombol pemicu interaksi awal -->
     <div id="tombolMulai" class="overlay-mulai">
         Ketuk di mana saja untuk memutar video
     </div>
@@ -72,24 +72,40 @@
         <!-- Lapisan transparan penghalang interaksi klik/pause -->
         <div class="pelindung-layar"></div>
         
-        <!-- Elemen Video YouTube Wadah Utama -->
+        <!-- Elemen tempat menaruh video secara otomatis -->
         <div id="videoWrapper" style="width:100%; height:100%;"></div>
     </div>
 
     <script>
-        // GANTI dQw4w9WgXcQ DENGAN ID VIDEO YOUTUBE ABANG
-        const ID_VIDEO_YOUTUBE = 'dQw4w9WgXcQ'; 
+        // =======================================================================
+        // PASTE / MASUKKAN LINK UTUH VIDEO YOUTUBE ABANG DI BAWAH INI:
+        // Bebas mau pakai link browser PC ataupun link tombol bagikan (share) dari HP.
+        // =======================================================================
+        const LINK_YOUTUBE_UTUH = "https://youtu.be/dQw4w9WgXcQ?si=PY5mOHLeCcc3OeXR"; 
+
+        // Fungsi pintar untuk mendeteksi dan mengekstrak ID video secara otomatis dari Link Utuh
+        function dapatkanIdYoutube(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
 
         const overlay = document.getElementById('tombolMulai');
         const container = document.getElementById('videoWrapper');
+        const idVideo = dapatkanIdYoutube(LINK_YOUTUBE_UTUH);
 
         overlay.addEventListener('click', function() {
+            if (!idVideo) {
+                alert("Format link YouTube yang dimasukkan salah, Bang. Periksa kembali baris kode nomor 62!");
+                return;
+            }
+
             overlay.style.display = 'none'; // Sembunyikan overlay setelah diklik
             
-            // Generate iframe langsung saat diklik agar langsung ngeplay + bersuara tanpa diblokir browser
+            // Membuat iframe secara realtime dengan injeksi parameter pengunci
             container.innerHTML = `
                 <iframe 
-                    src="https://youtube.com{ID_VIDEO_YOUTUBE}?autoplay=1&mute=0&controls=0&disablekb=1&rel=0&modestbranding=1&fs=0&iv_load_policy=3" 
+                    src="https://youtube.com{idVideo}?autoplay=1&mute=0&controls=0&disablekb=1&rel=0&modestbranding=1&fs=0&iv_load_policy=3" 
                     allow="autoplay; encrypted-media" 
                     allowfullscreen>
                 </iframe>
