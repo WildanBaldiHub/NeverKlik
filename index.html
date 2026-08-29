@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Fullscreen Lock</title>
+    <title>YouTube Fullscreen Link</title>
     <style>
-        /* Menghilangkan margin browser dan scrollbar */
         html, body {
             margin: 0;
             padding: 0;
@@ -16,22 +15,20 @@
             font-family: sans-serif;
         }
 
-        /* Container pembungkus video */
         .video-container {
             position: relative;
             width: 100vw;
             height: 100vh;
         }
 
-        /* Membuat iframe YouTube memenuhi seluruh layar */
+        /* Mengunci video YouTube agar memenuhi layar penuh */
         .video-container iframe {
             width: 100%;
             height: 100%;
             border: none;
-            pointer-events: auto;
         }
 
-        /* LAPISAN PELINDUNG (PENTING): Memblokir klik, double-click, dan sentuhan pada video */
+        /* LAPISAN PELINDUNG (PENTING): Memblokir total interaksi klik, klik kanan, pause, dan timeline */
         .pelindung-layar {
             position: absolute;
             top: 0;
@@ -42,14 +39,14 @@
             background: transparent;
         }
 
-        /* Tombol klik pertama (Syarat mutlak semua browser agar video bersuara bisa autoplay) */
+        /* Tombol klik pertama agar browser mengizinkan suara langsung keluar saat dibuka di tab biasa */
         .overlay-mulai {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            background-color: rgba(0, 0, 0, 0.95);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -66,7 +63,7 @@
 </head>
 <body>
 
-    <!-- Klik pertama untuk memicu autoplay dengan suara -->
+    <!-- Tombol pemicu awal -->
     <div id="tombolMulai" class="overlay-mulai">
         Ketuk di mana saja untuk memutar video
     </div>
@@ -74,57 +71,30 @@
     <div class="video-container">
         <!-- Lapisan transparan penghalang interaksi klik/pause -->
         <div class="pelindung-layar"></div>
-        <!-- Tempat video YouTube dimuat oleh API -->
-        <div id="player"></div>
+        
+        <!-- Elemen Video YouTube Wadah Utama -->
+        <div id="videoWrapper" style="width:100%; height:100%;"></div>
     </div>
 
-    <!-- Memuat Script Resmi YouTube Player API -->
-    <script src="https://youtube.com"></script>
-
     <script>
-        // MASUKKAN ID VIDEO YOUTUBE ANDA DI SINI
-        // Contoh jika linknya: ://youtube.com, maka ID nya adalah dQw4w9WgXcQ
+        // GANTI dQw4w9WgXcQ DENGAN ID VIDEO YOUTUBE ABANG
         const ID_VIDEO_YOUTUBE = 'dQw4w9WgXcQ'; 
 
-        let player;
         const overlay = document.getElementById('tombolMulai');
+        const container = document.getElementById('videoWrapper');
 
-        // Fungsi otomatis bawaan YouTube API saat script siap
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                videoId: ID_VIDEO_YOUTUBE,
-                playerVars: {
-                    'autoplay': 0,        // Diatur 0 dulu, akan dipicu lewat klik overlay
-                    'controls': 0,        // Sembunyikan semua tombol kontrol YouTube (play/timeline/volume)
-                    'disablekb': 1,       // Matikan fungsi keyboard (mencegah pencet Spacebar/Panah untuk mempercepat)
-                    'rel': 0,             // Tidak menampilkan rekomendasi video orang lain saat selesai
-                    'modestbranding': 1,  // Sembunyikan logo YouTube sebisa mungkin
-                    'fs': 0,              // Matikan tombol fullscreen bawaan
-                    'iv_load_policy': 3   // Sembunyikan anotasi video
-                },
-                events: {
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-        }
-
-        // 1. Aksi Klik Pertama: Mulai Ulang ke Detik 0, Aktifkan Suara, dan Paksa Play
         overlay.addEventListener('click', function() {
-            if (player && typeof player.playVideo === 'function') {
-                overlay.style.display = 'none'; // Hilangkan tombol petunjuk
-                player.seekTo(0);               // Pastikan video mulai tepat dari detik 0
-                player.unMute();                // Hidupkan suara video
-                player.playVideo();             // Mulai jalankan video
-            }
+            overlay.style.display = 'none'; // Sembunyikan overlay setelah diklik
+            
+            // Generate iframe langsung saat diklik agar langsung ngeplay + bersuara tanpa diblokir browser
+            container.innerHTML = `
+                <iframe 
+                    src="https://youtube.com{ID_VIDEO_YOUTUBE}?autoplay=1&mute=0&controls=0&disablekb=1&rel=0&modestbranding=1&fs=0&iv_load_policy=3" 
+                    allow="autoplay; encrypted-media" 
+                    allowfullscreen>
+                </iframe>
+            `;
         });
-
-        // 2. Kunci Status Video (Jika ada sistem internal/eksternal yang mencoba pause, paksa play lagi)
-        function onPlayerStateChange(event) {
-            // Jika video tidak sengaja ter-pause (Status 2 artinya Paused)
-            if (event.data === YT.PlayerState.PAUSED) {
-                player.playVideo(); // Langsung paksa putar kembali detik itu juga
-            }
-        }
     </script>
 
 </body>
