@@ -3,114 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Fullscreen Link</title>
+
+    <title>YouTube Player</title>
+
     <style>
-        html, body {
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: black;
-            font-family: sans-serif;
+            background: black;
+            font-family: Arial, sans-serif;
         }
 
         .video-container {
             position: relative;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
+            background: black;
         }
 
-        /* Mengunci video YouTube agar memenuhi layar penuh */
-        .video-container iframe {
+        #videoWrapper {
+            width: 100%;
+            height: 100%;
+        }
+
+        #videoWrapper iframe {
             width: 100%;
             height: 100%;
             border: none;
+            display: block;
         }
 
-        /* LAPISAN PELINDUNG: Memblokir klik, klik kanan, pause, dan timeline */
+        /* Lapisan yang menutupi seluruh video */
         .pelindung-layar {
             position: absolute;
-            top: 0;
-            left: 0;
+            inset: 0;
+
             width: 100%;
             height: 100%;
+
             z-index: 10;
+
             background: transparent;
+
+            /* Memastikan semua klik berhenti di sini */
+            pointer-events: auto;
+
+            cursor: default;
         }
 
-        /* Tombol klik pertama agar browser mengizinkan suara langsung keluar di tab biasa */
+        /* Overlay awal */
         .overlay-mulai {
             position: fixed;
-            top: 0;
-            left: 0;
+            inset: 0;
+
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+
+            background: rgba(0, 0, 0, 0.96);
+
             display: flex;
             justify-content: center;
             align-items: center;
+
+            padding: 20px;
+
             color: white;
             font-size: 22px;
             font-weight: bold;
-            z-index: 999;
-            cursor: pointer;
+
             text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
+
+            z-index: 999;
+
+            cursor: pointer;
+
+            user-select: none;
         }
     </style>
 </head>
+
 <body>
 
-    <!-- Tombol pemicu interaksi awal -->
-    <div id="tombolMulai" class="overlay-mulai">
+    <!-- Overlay awal -->
+    <div
+        id="tombolMulai"
+        class="overlay-mulai"
+    >
         Ketuk di mana saja untuk memutar video
     </div>
 
+
+    <!-- Video -->
     <div class="video-container">
-        <!-- Lapisan transparan penghalang interaksi klik/pause -->
-        <div class="pelindung-layar"></div>
-        
-        <!-- Elemen tempat menaruh video secara otomatis -->
-        <div id="videoWrapper" style="width:100%; height:100%;"></div>
+
+        <div id="videoWrapper"></div>
+
+        <!-- Lapisan pemblokir interaksi -->
+        <div
+            class="pelindung-layar"
+            id="pelindung"
+        ></div>
+
     </div>
 
+
     <script>
-        // =======================================================================
-        // PASTE / MASUKKAN LINK UTUH VIDEO YOUTUBE ABANG DI BAWAH INI:
-        // Bebas mau pakai link browser PC ataupun link tombol bagikan (share) dari HP.
-        // =======================================================================
-        const LINK_YOUTUBE_UTUH = "https://youtu.be/dQw4w9WgXcQ?si=PY5mOHLeCcc3OeXR"; 
 
-        // Fungsi pintar untuk mendeteksi dan mengekstrak ID video secara otomatis dari Link Utuh
+        // ============================================================
+        // MASUKKAN LINK VIDEO YOUTUBE DI SINI
+        // Bisa:
+        //
+        // https://youtu.be/VIDEO_ID
+        // https://www.youtube.com/watch?v=VIDEO_ID
+        // https://www.youtube.com/embed/VIDEO_ID
+        //
+        // ============================================================
+
+        const LINK_YOUTUBE_UTUH =
+            "https://youtu.be/dQw4w9WgXcQ?si=PY5mOHLeCcc3OeXR";
+
+
+        // ============================================================
+        // MENGAMBIL VIDEO ID YOUTUBE
+        // ============================================================
+
         function dapatkanIdYoutube(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
 
-        const overlay = document.getElementById('tombolMulai');
-        const container = document.getElementById('videoWrapper');
-        const idVideo = dapatkanIdYoutube(LINK_YOUTUBE_UTUH);
+            try {
 
-        overlay.addEventListener('click', function() {
-            if (!idVideo) {
-                alert("Format link YouTube yang dimasukkan salah, Bang. Periksa kembali baris kode nomor 62!");
-                return;
+                const parsedUrl = new URL(url);
+
+                // Link pendek:
+                // https://youtu.be/VIDEO_ID
+                if (
+                    parsedUrl.hostname === "youtu.be"
+                ) {
+
+                    return parsedUrl.pathname
+                        .split("/")
+                        .filter(Boolean)[0];
+
+                }
+
+
+                // Link biasa:
+                // youtube.com/watch?v=VIDEO_ID
+                if (
+                    parsedUrl.pathname === "/watch"
+                ) {
+
+                    return parsedUrl.searchParams.get("v");
+
+                }
+
+
+                // Link embed:
+                // youtube.com/embed/VIDEO_ID
+                if (
+                    parsedUrl.pathname.startsWith("/embed/")
+                ) {
+
+                    return parsedUrl.pathname
+                        .split("/embed/")[1]
+                        .split("/")[0];
+
+                }
+
+
+                return null;
+
             }
 
-            overlay.style.display = 'none'; // Sembunyikan overlay setelah diklik
-            
-            // Membuat iframe secara realtime dengan injeksi parameter pengunci
-            container.innerHTML = `
-                <iframe 
-                    src="https://youtube.com{idVideo}?autoplay=1&mute=0&controls=0&disablekb=1&rel=0&modestbranding=1&fs=0&iv_load_policy=3" 
-                    allow="autoplay; encrypted-media" 
-                    allowfullscreen>
-                </iframe>
-            `;
+            catch (error) {
+
+                console.error(
+                    "Link YouTube tidak valid:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+
+        // ============================================================
+        // AMBIL ELEMEN
+        // ============================================================
+
+        const overlay =
+            document.getElementById("tombolMulai");
+
+        const container =
+            document.getElementById("videoWrapper");
+
+        const pelindung =
+            document.getElementById("pelindung");
+
+
+        // ============================================================
+        // AMBIL ID VIDEO
+        // ============================================================
+
+        const idVideo =
+            dapatkanIdYoutube(
+                LINK_YOUTUBE_UTUH
+            );
+
+
+        // ============================================================
+        // BLOKIR INTERAKSI
+        // ============================================================
+
+        const eventYangDiblokir = [
+
+            "click",
+            "dblclick",
+            "contextmenu",
+            "mousedown",
+            "mouseup",
+            "pointerdown",
+            "pointerup",
+            "touchstart",
+            "touchend"
+
+        ];
+
+
+        eventYangDiblokir.forEach(function(eventName) {
+
+            pelindung.addEventListener(
+                eventName,
+
+                function(event) {
+
+                    event.preventDefault();
+
+                    event.stopPropagation();
+
+                    return false;
+
+                },
+
+                {
+                    passive: false
+                }
+
+            );
+
         });
+
+
+        // ============================================================
+        // BLOKIR KEYBOARD
+        // ============================================================
+
+        window.addEventListener(
+
+            "keydown",
+
+            function(event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                return false;
+
+            },
+
+            true
+
+        );
+
+
+        // ============================================================
+        // MULAI VIDEO
+        // ============================================================
+
+        overlay.addEventListener(
+
+            "click",
+
+            function() {
+
+                // Cek ID video
+                if (
+                    !idVideo ||
+                    idVideo.length !== 11
+                ) {
+
+                    alert(
+                        "Link YouTube tidak valid!"
+                    );
+
+                    return;
+
+                }
+
+
+                // Sembunyikan overlay
+                overlay.style.display = "none";
+
+
+                // ====================================================
+                // BUAT YOUTUBE EMBED
+                // ====================================================
+
+                const iframe = document.createElement(
+                    "iframe"
+                );
+
+
+                // URL embed yang benar
+                iframe.src =
+                    "https://www.youtube.com/embed/"
+                    +
+                    idVideo
+                    +
+                    "?autoplay=1"
+                    +
+                    "&mute=0"
+                    +
+                    "&controls=0"
+                    +
+                    "&disablekb=1"
+                    +
+                    "&rel=0"
+                    +
+                    "&modestbranding=1"
+                    +
+                    "&fs=0"
+                    +
+                    "&iv_load_policy=3"
+                    +
+                    "&playsinline=1";
+
+
+                iframe.allow =
+                    "autoplay; encrypted-media";
+
+
+                iframe.allowFullscreen =
+                    false;
+
+
+                iframe.setAttribute(
+                    "frameborder",
+                    "0"
+                );
+
+
+                // Masukkan video
+                container.appendChild(
+                    iframe
+                );
+
+            }
+
+        );
+
     </script>
 
 </body>
